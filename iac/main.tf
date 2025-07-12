@@ -159,7 +159,6 @@ resource "aws_ecs_task_definition" "app" {
       ]
     }
   ])
-}
 
 resource "aws_ecs_service" "app" {
   name            = "task-tracker-service"

@@ -68,7 +68,7 @@ resource "aws_lb_listener" "app_listener" {
 }
 
 resource "aws_route_table_association" "public_assoc" {
-  subnet_id      = aws_subnet.public.id
+  subnet_id      = aws_subnet.public_a.id
   route_table_id = aws_route_table.public.id
 }
 
@@ -151,7 +151,7 @@ resource "aws_ecs_service" "app" {
   task_definition = aws_ecs_task_definition.app.arn
 
   network_configuration {
-    subnets         = [aws_subnet.public.id]
+    subnets         = [aws_subnet.public_a.id, aws_subnet.public_b.id]
     security_groups = [aws_security_group.ecs_sg.id]
     assign_public_ip = true
   }

@@ -44,8 +44,13 @@ resource "aws_lb_target_group" "app_tg" {
   name     = "task-tracker-tg"
   port     = 8000
   protocol = "HTTP"
-  vpc_id   = aws_vpc.main.id
   target_type = "ip"
+  vpc_id   = aws_vpc.main.id
+
+lifecycle {
+   prevent_destroy = true
+   ignore_changes = [name]
+}
 
   health_check {
     path                = "/"
@@ -78,23 +83,6 @@ resource "aws_ecr_repository" "app_repo" {
 
 resource "aws_ecs_cluster" "main" {
   name = "task-tracker-cluster"
-}
-
-resource "aws_iam_role" "ecs_task_execution" {
-  name = "ecsTaskExecutionRole"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = "sts:AssumeRole",
-        Effect = "Allow",
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      }
-    ]
-  })
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_execution_policy" {

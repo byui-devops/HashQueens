@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      AWS_REGION: us-west-2
+      AWS_REGION: us-east-1
       ECR_REPO_NAME: task-tracker-api
       IMAGE_TAG: ${{ github.ref_name }}
 

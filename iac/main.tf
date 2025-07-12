@@ -40,10 +40,10 @@ resource "aws_lb" "app_alb" {
   load_balancer_type = "application"
   subnets            = [aws_subnet.public_a.id, aws_subnet.public_b.id]
   security_groups    = [aws_security_group.ecs_sg.id]
-  lifecycle {
-    prevent_destroy = true
-    ignore_changes  = [name]
-  }
+  #lifecycle {
+   # prevent_destroy = true
+   # ignore_changes  = [name]
+ # }
 }
 resource "aws_lb_target_group" "app_tg" {
   name     = "task-tracker-tg"

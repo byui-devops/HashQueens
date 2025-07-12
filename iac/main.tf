@@ -35,7 +35,7 @@ resource "aws_route" "internet_access" {
   gateway_id             = aws_internet_gateway.igw.id
 }
 resource "aws_lb" "app_alb" {
-  name               = "task-tracker-alb"
+  prefix_name               = "task-alb"
   internal           = false
   load_balancer_type = "application"
   subnets            = [aws_subnet.public_a.id, aws_subnet.public_b.id]
@@ -52,10 +52,10 @@ resource "aws_lb_target_group" "app_tg" {
   target_type = "ip"
   vpc_id   = aws_vpc.main.id
 
-lifecycle {
-   prevent_destroy = true
-   ignore_changes = [name]
-}
+  lifecycle {
+     prevent_destroy = true
+     ignore_changes = [name]
+  }
 
   health_check {
     path                = "/"
@@ -81,13 +81,17 @@ resource "aws_route_table_association" "public_assoc" {
   subnet_id      = aws_subnet.public_a.id
   route_table_id = aws_route_table.public.id
 }
+resource "aws_route_table_association" "public_assoc_b" {
+  subnet_id      = aws_subnet.public_b.id
+  route_table_id = aws_route_table.public.id
+}
 
 resource "aws_ecr_repository" "app_repo" {
   name = "task-tracker-api"
-lifecycle {
-  prevent_destroy = true
-  ignore_changes = [name]
-}
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [name]
+  }
 }
 resource "aws_ecs_cluster" "main" {
   name = "task-tracker-cluster"
@@ -100,7 +104,7 @@ resource "aws_ecs_task_definition" "app" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
   memory                   = "512"
-
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
 
   container_definitions = jsonencode([
     {
@@ -110,6 +114,7 @@ resource "aws_ecs_task_definition" "app" {
         {
           containerPort = 8000
           hostPort      = 8000
+          protocol      = "tcp"
         }
       ]
     }
@@ -134,6 +139,30 @@ resource "aws_security_group" "ecs_sg" {
   }
 }
 
+
+######################
+# IAM for ECS Fargate#
+######################
+
+resource "aws_iam_role" "ecs_task_execution" {
+  name = "ecsTaskExecutionRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Principal = {
+        Service = "ecs-tasks.amazonaws.com"
+      },
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_execution_policy" {
+  role       = aws_iam_role.ecs_task_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
 resource "aws_ecs_service" "app" {
   name            = "task-tracker-service"
   cluster         = aws_ecs_cluster.main.id
@@ -159,6 +188,6 @@ resource "aws_ecs_service" "app" {
 
   depends_on = [
     aws_lb_listener.app_listener,
-   # aws_iam_role_policy_attachment.ecs_execution_policy
+    aws_iam_role_policy_attachment.ecs_execution_policy
   ]
 }

@@ -14,9 +14,7 @@ resource "aws_ecr_repository" "app_repo" {
 }
 
 locals {
-  ecr_repo_url = length(try(data.aws_ecr_repository.existing.id, [])) > 0 ?
-    data.aws_ecr_repository.existing.repository_url :
-    aws_ecr_repository.app_repo[0].repository_url
+  ecr_repo_url = length(try(data.aws_ecr_repository.existing.id, [])) > 0 ? data.aws_ecr_repository.existing.repository_url : aws_ecr_repository.app_repo[0].repository_url
 }
 
 resource "aws_vpc" "main" {

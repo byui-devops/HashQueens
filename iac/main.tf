@@ -104,14 +104,14 @@ resource "aws_instance" "app" {
 # Optional ALB (not strictly necessary for EC2 but included if desired)
 
 resource "aws_lb" "app_alb" {
-  name               = "task-tracker-alb-dl"
+  name_prefix        = "tt-tg-"
   load_balancer_type = "application"
   subnets            = [aws_subnet.public_a.id, aws_subnet.public_b.id]
   security_groups    = [aws_security_group.web_sg.id]
 }
 
 resource "aws_lb_target_group" "app_tg" {
-  name        = "task-tracker-tg-dl"
+  name_prefix = "tt-tg-"
   port        = 8000
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id

@@ -143,7 +143,7 @@ resource "aws_ecs_task_definition" "app" {
   memory                   = "512"
 
  execution_role_arn = "arn:aws:sts::751424356366:assumed-role/voclabs/user4043731=sto13055@byui.edu"
-}
+
 
  # execution_role_arn = aws_iam_role.ecs_task_execution.arn
 
@@ -159,7 +159,7 @@ resource "aws_ecs_task_definition" "app" {
       ]
     }
   ])
-
+}
 resource "aws_ecs_service" "app" {
   name            = "task-tracker-service"
   cluster         = aws_ecs_cluster.main.id

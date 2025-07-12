@@ -36,9 +36,14 @@ resource "aws_route" "internet_access" {
 }
 resource "aws_lb" "app_alb" {
   name               = "task-tracker-alb"
+  internal           = false
   load_balancer_type = "application"
   subnets            = [aws_subnet.public_a.id, aws_subnet.public_b.id]
   security_groups    = [aws_security_group.ecs_sg.id]
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes  = [name]
+  }
 }
 resource "aws_lb_target_group" "app_tg" {
   name     = "task-tracker-tg"
@@ -79,8 +84,11 @@ resource "aws_route_table_association" "public_assoc" {
 
 resource "aws_ecr_repository" "app_repo" {
   name = "task-tracker-api"
+lifecycle {
+  prevent_destroy = true
+  ignore_changes = [name]
 }
-
+}
 resource "aws_ecs_cluster" "main" {
   name = "task-tracker-cluster"
 }

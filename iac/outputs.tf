@@ -1,5 +1,5 @@
 output "ecr_url" {
-  value = aws_ecr_repository.app_repo.repository_url
+  value = aws_ecr_repository.app_repo[0].repository_url
 }
 
 output "ecs_service_name" {

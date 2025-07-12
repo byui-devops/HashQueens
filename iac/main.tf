@@ -2,6 +2,23 @@ provider "aws" {
   region = "us-east-1" # change as needed
 }
 
+# Try to reference existing ECR repository
+data "aws_ecr_repository" "existing" {
+  name = "task-tracker-api"
+  # Optional: uncomment if you want Terraform to not error if not found
+  # depends_on = []
+}
+
+# Conditionally create ECR if it doesn't exist
+resource "aws_ecr_repository" "app_repo" {
+  count = length(try(data.aws_ecr_repository.existing.id, [])) == 0 ? 1 : 0
+  name  = "task-tracker-api"
+}
+
+locals {
+  ecr_repo_url = length(try(data.aws_ecr_repository.existing.id, [])) > 0 ? data.aws_ecr_repository.existing.repository_url : aws_ecr_repository.app_repo[0].repository_url
+}
+
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 }
@@ -20,7 +37,6 @@ resource "aws_subnet" "public_b" {
   map_public_ip_on_launch = true
 }
 
-
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 }
@@ -34,17 +50,42 @@ resource "aws_route" "internet_access" {
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = aws_internet_gateway.igw.id
 }
+
+resource "aws_route_table_association" "public_assoc" {
+  subnet_id      = aws_subnet.public_a.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_security_group" "ecs_sg" {
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    from_port   = 8000
+    to_port     = 8000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 resource "aws_lb" "app_alb" {
   name               = "task-tracker-alb"
   load_balancer_type = "application"
   subnets            = [aws_subnet.public_a.id, aws_subnet.public_b.id]
   security_groups    = [aws_security_group.ecs_sg.id]
 }
+
 resource "aws_lb_target_group" "app_tg" {
-  name     = "task-tracker-tg"
-  port     = 8000
-  protocol = "HTTP"
-  vpc_id   = aws_vpc.main.id
+  name        = "task-tracker-tg"
+  port        = 8000
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.main.id
   target_type = "ip"
 
   health_check {
@@ -56,6 +97,7 @@ resource "aws_lb_target_group" "app_tg" {
     matcher             = "200-399"
   }
 }
+
 resource "aws_lb_listener" "app_listener" {
   load_balancer_arn = aws_lb.app_alb.arn
   port              = 80
@@ -65,15 +107,6 @@ resource "aws_lb_listener" "app_listener" {
     type             = "forward"
     target_group_arn = aws_lb_target_group.app_tg.arn
   }
-}
-
-resource "aws_route_table_association" "public_assoc" {
-  subnet_id      = aws_subnet.public_a.id
-  route_table_id = aws_route_table.public.id
-}
-
-resource "aws_ecr_repository" "app_repo" {
-  name = "task-tracker-api"
 }
 
 resource "aws_ecs_cluster" "main" {
@@ -114,33 +147,15 @@ resource "aws_ecs_task_definition" "app" {
   container_definitions = jsonencode([
     {
       name      = "task-tracker",
-      image     = "${aws_ecr_repository.app_repo.repository_url}:latest",
+      image     = "${local.ecr_repo_url}:latest",
       portMappings = [
         {
-          containerPort = 8000
+          containerPort = 8000,
           hostPort      = 8000
         }
       ]
     }
   ])
-}
-
-resource "aws_security_group" "ecs_sg" {
-  vpc_id = aws_vpc.main.id
-
-  ingress {
-    from_port   = 8000
-    to_port     = 8000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 }
 
 resource "aws_ecs_service" "app" {

@@ -46,6 +46,9 @@ jobs:
       - name: Terraform Init
         run: terraform init
         working-directory: ./iac
+      - name: Terraform Plan
+        run: terraform plan
+        working-directory: ./iac
 
       - name: Terraform Apply
         run: terraform apply -auto-approve

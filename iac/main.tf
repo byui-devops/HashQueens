@@ -1,22 +1,22 @@
 provider "aws" {
-  region = "us-east-1" # change as needed
+  region = "us-east-1"
 }
 
-# Try to reference existing ECR repository
+# Try to reference existing ECR repo
 data "aws_ecr_repository" "existing" {
   name = "task-tracker-api"
-  # Optional: uncomment if you want Terraform to not error if not found
-  # depends_on = []
 }
 
-# Conditionally create ECR if it doesn't exist
+# Conditionally create ECR repo if not found
 resource "aws_ecr_repository" "app_repo" {
   count = length(try(data.aws_ecr_repository.existing.id, [])) == 0 ? 1 : 0
   name  = "task-tracker-api"
 }
 
 locals {
-  ecr_repo_url = length(try(data.aws_ecr_repository.existing.id, [])) > 0 ? data.aws_ecr_repository.existing.repository_url : aws_ecr_repository.app_repo[0].repository_url
+  ecr_repo_url = length(try(data.aws_ecr_repository.existing.id, [])) > 0 ?
+    data.aws_ecr_repository.existing.repository_url :
+    aws_ecr_repository.app_repo[0].repository_url
 }
 
 resource "aws_vpc" "main" {
@@ -51,12 +51,17 @@ resource "aws_route" "internet_access" {
   gateway_id             = aws_internet_gateway.igw.id
 }
 
-resource "aws_route_table_association" "public_assoc" {
+resource "aws_route_table_association" "public_assoc_a" {
   subnet_id      = aws_subnet.public_a.id
   route_table_id = aws_route_table.public.id
 }
 
-resource "aws_security_group" "ecs_sg" {
+resource "aws_route_table_association" "public_assoc_b" {
+  subnet_id      = aws_subnet.public_b.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_security_group" "web_sg" {
   vpc_id = aws_vpc.main.id
 
   ingress {
@@ -74,11 +79,37 @@ resource "aws_security_group" "ecs_sg" {
   }
 }
 
+resource "aws_instance" "app" {
+  ami                    = "ami-0c101f26f147fa7fd" # Amazon Linux 2023 (check for updates)
+  instance_type          = "t3.micro"
+  subnet_id              = aws_subnet.public_a.id
+  associate_public_ip_address = true
+  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  key_name               = "your-ssh-key-name" # Replace with your actual EC2 key pair name
+
+  user_data = <<-EOF
+              #!/bin/bash
+              yum update -y
+              amazon-linux-extras install docker -y
+              service docker start
+              usermod -a -G docker ec2-user
+              aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${local.ecr_repo_url}
+              docker pull ${local.ecr_repo_url}:latest
+              docker run -d -p 8000:8000 ${local.ecr_repo_url}:latest
+              EOF
+
+  tags = {
+    Name = "TaskTrackerEC2"
+  }
+}
+
+# Optional ALB (not strictly necessary for EC2 but included if desired)
+
 resource "aws_lb" "app_alb" {
   name               = "task-tracker-alb"
   load_balancer_type = "application"
   subnets            = [aws_subnet.public_a.id, aws_subnet.public_b.id]
-  security_groups    = [aws_security_group.ecs_sg.id]
+  security_groups    = [aws_security_group.web_sg.id]
 }
 
 resource "aws_lb_target_group" "app_tg" {
@@ -86,7 +117,7 @@ resource "aws_lb_target_group" "app_tg" {
   port        = 8000
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
-  target_type = "ip"
+  target_type = "instance"
 
   health_check {
     path                = "/"
@@ -109,82 +140,9 @@ resource "aws_lb_listener" "app_listener" {
   }
 }
 
-resource "aws_ecs_cluster" "main" {
-  name = "task-tracker-cluster"
+resource "aws_lb_target_group_attachment" "app_attach" {
+  target_group_arn = aws_lb_target_group.app_tg.arn
+  target_id        = aws_instance.app.id
+  port             = 8000
 }
 
-resource "aws_iam_role" "ecs_task_execution" {
-  name = "ecsTaskExecutionRole"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = "sts:AssumeRole",
-        Effect = "Allow",
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_execution_policy" {
-  role       = aws_iam_role.ecs_task_execution.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
-resource "aws_ecs_task_definition" "app" {
-  family                   = "task-tracker"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = "256"
-  memory                   = "512"
-
- execution_role_arn = "arn:aws:sts::751424356366:assumed-role/voclabs/user4043731=sto13055@byui.edu"
-
-
- # execution_role_arn = aws_iam_role.ecs_task_execution.arn
-
-  container_definitions = jsonencode([
-    {
-      name      = "task-tracker",
-      image     = "${local.ecr_repo_url}:latest",
-      portMappings = [
-        {
-          containerPort = 8000,
-          hostPort      = 8000
-        }
-      ]
-    }
-  ])
-}
-resource "aws_ecs_service" "app" {
-  name            = "task-tracker-service"
-  cluster         = aws_ecs_cluster.main.id
-  launch_type     = "FARGATE"
-  desired_count   = 1
-  task_definition = aws_ecs_task_definition.app.arn
-
-  network_configuration {
-    subnets         = [aws_subnet.public_a.id, aws_subnet.public_b.id]
-    security_groups = [aws_security_group.ecs_sg.id]
-    assign_public_ip = true
-  }
-
-  load_balancer {
-    target_group_arn = aws_lb_target_group.app_tg.arn
-    container_name   = "task-tracker"
-    container_port   = 8000
-  }
-
-  lifecycle {
-    ignore_changes = [task_definition]
-  }
-
-  depends_on = [
-    aws_lb_listener.app_listener,
-    aws_iam_role_policy_attachment.ecs_execution_policy
-  ]
-}

@@ -35,7 +35,7 @@ resource "aws_route" "internet_access" {
   gateway_id             = aws_internet_gateway.igw.id
 }
 resource "aws_lb" "app_alb" {
-  prefix_name               = "task-alb"
+  name_prefix               = "task-alb"
   internal           = false
   load_balancer_type = "application"
   subnets            = [aws_subnet.public_a.id, aws_subnet.public_b.id]

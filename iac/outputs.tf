@@ -3,9 +3,9 @@ output "ecr_url" {
 value = local.ecr_repo_url
 }
 
-output "ecs_service_name" {
-  value = aws_ecs_service.app.name
-}
+#output "ecs_service_name" {
+#  value = aws_ecs_service.app.name
+#}
 
 output "alb_dns_name" {
   description = "Public DNS name of the Application Load Balancer"

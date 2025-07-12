@@ -83,7 +83,7 @@ resource "aws_instance" "app" {
   subnet_id              = aws_subnet.public_a.id
   associate_public_ip_address = true
   vpc_security_group_ids = [aws_security_group.web_sg.id]
-  key_name               = "your-ssh-key-name" # Replace with your actual EC2 key pair name
+  key_name               = "dl-ec2-key" # Replace with your actual EC2 key pair name
 
   user_data = <<-EOF
               #!/bin/bash

@@ -13,6 +13,11 @@ class Task(BaseModel):
     title: str
     description: str = ""
 
+# ✅ Health check endpoint for ALB
+@app.get("/")
+def health_check():
+    return {"status": "ok"}
+
 @app.post("/tasks")
 def create_task(task: Task):
     global task_id_counter

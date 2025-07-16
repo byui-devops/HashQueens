@@ -82,7 +82,12 @@ ingress {
   #protocol    = "tcp"
   #cidr_blocks = ["0.0.0.0/0"]
 #}
-
+  ingress {
+    from_port       = 8000
+    to_port         = 8000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.lb_sg.id]
+    description     = "Allow ALB to access app"
 
   egress {
     from_port   = 0
@@ -100,7 +105,7 @@ resource "aws_security_group" "web_sg" {
     to_port     = 8000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    #security_groups = [aws_security_group.lb_sg.id]
+    security_groups = [aws_security_group.lb_sg.id]
   }
   ingress {
     from_port   = 22

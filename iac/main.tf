@@ -88,7 +88,7 @@ ingress {
     protocol        = "tcp"
     security_groups = [aws_security_group.lb_sg.id]
     description     = "Allow ALB to access app"
-
+}
   egress {
     from_port   = 0
     to_port     = 0

@@ -1,11 +1,12 @@
-# app/main.py
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Dict
 
 app = FastAPI()
 
-# In-memory database substitute
+# In-memory "database"
 tasks: Dict[int, Dict[str, str]] = {}
 task_id_counter = 1
 
@@ -13,8 +14,10 @@ class Task(BaseModel):
     title: str
     description: str = ""
 
-# ✅ Health check endpoint for ALB
-@app.get("/")
+# Serve static frontend files
+app.mount("/", StaticFiles(directory="app/static", html=True), name="static")
+
+@app.get("/health")
 def health_check():
     return {"status": "ok"}
 
@@ -48,3 +51,4 @@ def delete_task(task_id: int):
         raise HTTPException(status_code=404, detail="Task not found")
     del tasks[task_id]
     return {"message": "Task deleted"}
+

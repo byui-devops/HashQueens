@@ -48,3 +48,5 @@ def delete_task(task_id: int):
         raise HTTPException(status_code=404, detail="Task not found")
     del tasks[task_id]
     return {"message": "Task deleted"}
+cd app
+nohup uvicorn main:app --host 0.0.0.0 --port 8000 > output.log 2>&1 &

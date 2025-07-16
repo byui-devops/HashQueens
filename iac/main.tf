@@ -100,7 +100,7 @@ resource "aws_security_group" "web_sg" {
     to_port     = 8000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    security_groups = [aws_security_group.lb_sg.id]
+    #security_groups = [aws_security_group.lb_sg.id]
   }
 
   egress {

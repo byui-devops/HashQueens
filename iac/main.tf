@@ -162,8 +162,10 @@ resource "aws_instance" "app" {
 user_data = <<-EOF
   #!/bin/bash
   yum update -y
-  yum install -y python3 git
+  yum install -y python3 python3-pip git
 
+  # Upgrade pip and install FastAPI and Uvicorn
+  pip3 install --upgrade pip
   pip3 install fastapi uvicorn
 
   # Move to home directory

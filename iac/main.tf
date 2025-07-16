@@ -119,16 +119,39 @@ resource "aws_instance" "app" {
   vpc_security_group_ids = [aws_security_group.web_sg.id]
   key_name               = "dl-ec2-key" # Replace with your actual EC2 key pair name
 
-  user_data = <<-EOF
-              #!/bin/bash
-              yum update -y
-              amazon-linux-extras install docker -y
-              service docker start
-              usermod -a -G docker ec2-user
-              aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${local.ecr_repo_url}
-              docker pull ${local.ecr_repo_url}:latest
-              docker run -d -p 8000:8000 ${local.ecr_repo_url}:latest
-              EOF
+ # user_data = <<-EOF
+  #            #!/bin/bash
+   #           yum update -y
+    #          amazon-linux-extras install docker -y
+     #         service docker start
+      #        usermod -a -G docker ec2-user
+       #       aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${local.ecr_repo_url}
+        #      docker pull ${local.ecr_repo_url}:latest
+         #     docker run -d -p 8000:8000 ${local.ecr_repo_url}:latest
+          #    EOF
+
+user_data = <<-EOF
+            #!/bin/bash
+            yum update -y
+            yum install -y python3 git
+
+            # Move to home directory
+            cd /home/ec2-user
+
+            # Clone your GitHub repo
+            git clone https://github.com/byui-devops/HashQueens.git
+            cd HashQueens
+
+            # Install dependencies
+            pip3 install -r requirements.txt
+
+            # Run the app (make sure the entry point matches your app file)
+            nohup python3 app.py > output.log 2>&1 &
+            EOF
+
+
+
+
 
   tags = {
     Name = "TaskTrackerEC2"

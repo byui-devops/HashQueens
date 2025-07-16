@@ -175,6 +175,7 @@ user_data = <<-EOF
 
   # Upgrade pip and install from requirements.txt
   pip3 install --upgrade pip
+  pipe3 install fastapi uvicorn
   pip3 install -r requirements.txt
 
   # Start FastAPI with Uvicorn

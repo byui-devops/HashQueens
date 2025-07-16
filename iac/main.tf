@@ -65,19 +65,23 @@ resource "aws_security_group" "lb_sg" {
   vpc_id      = aws_vpc.main.id
 
   # Allow ALB traffic to EC2
+# change from 8000 to 80 DS 7.15
 ingress {
-  from_port       = 8000
-  to_port         = 8000
+  from_port       = 80
+  to_port         = 80
   protocol        = "tcp"
+  ## added cidr blocks']
+  cidr blocks = [0.0.0.0/0"]
 }
 
 # (Optional) Allow direct browser access to EC2 for testing
-ingress {
-  from_port   = 8000
-  to_port     = 8000
-  protocol    = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
-}
+#commented out block to test:
+#ingress {
+  #from_port   = 8000
+  #to_port     = 8000
+  #protocol    = "tcp"
+  #cidr_blocks = ["0.0.0.0/0"]
+#}
 
 
   egress {

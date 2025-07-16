@@ -15,8 +15,7 @@ class Task(BaseModel):
     description: str = ""
 
 # Serve static frontend files
-app.mount("/", StaticFiles(directory="app/static", html=True), name="static")
-
+app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static"), html=True), name="static")
 #@app.get("/health")
 #def health_check():
 #    return {"status": "ok"}

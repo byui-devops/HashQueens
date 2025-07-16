@@ -17,9 +17,9 @@ class Task(BaseModel):
 # Serve static frontend files
 app.mount("/", StaticFiles(directory="app/static", html=True), name="static")
 
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
+#@app.get("/health")
+#def health_check():
+#    return {"status": "ok"}
 
 @app.post("/tasks")
 def create_task(task: Task):

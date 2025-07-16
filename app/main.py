@@ -1,10 +1,9 @@
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Dict
-import os
-
 
 app = FastAPI()
 
@@ -16,11 +15,14 @@ class Task(BaseModel):
     title: str
     description: str = ""
 
-# Serve static frontend files
-app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static"), html=True), name="static")
-#@app.get("/health")
-#def health_check():
-#    return {"status": "ok"}
+# Serve static files (JS, CSS, etc.)
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+# Serve index.html at root
+@app.get("/")
+def read_index():
+    return FileResponse(os.path.join(static_dir, "index.html"))
 
 @app.post("/tasks")
 def create_task(task: Task):
@@ -52,4 +54,3 @@ def delete_task(task_id: int):
         raise HTTPException(status_code=404, detail="Task not found")
     del tasks[task_id]
     return {"message": "Task deleted"}
-

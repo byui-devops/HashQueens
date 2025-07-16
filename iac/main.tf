@@ -71,7 +71,7 @@ ingress {
   to_port         = 80
   protocol        = "tcp"
   ## added cidr blocks']
-  cidr blocks = [0.0.0.0/0"]
+  cidr blocks = ["0.0.0.0/0"]
 }
 
 # (Optional) Allow direct browser access to EC2 for testing

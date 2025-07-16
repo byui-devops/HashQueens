@@ -135,25 +135,42 @@ resource "aws_instance" "app" {
          #     docker run -d -p 8000:8000 ${local.ecr_repo_url}:latest
           #    EOF
 
-user_data = <<-EOF
+#user_data = <<-EOF
             #!/bin/bash
-            yum update -y
-            yum install -y python3 git
+           # yum update -y
+           # yum install -y python3 git
 
             # Move to home directory
-            cd /home/ec2-user
+           # cd /home/ec2-user
 
             # Clone your GitHub repo
-            git clone https://github.com/byui-devops/HashQueens.git
-            cd HashQueens
+            #git clone https://github.com/byui-devops/HashQueens.git
+           # cd HashQueens
 
             # Install dependencies
-            pip3 install -r requirements.txt
+           # pip3 install -r requirements.txt
 
             # Run the app (make sure the entry point matches your app file)
-            nohup python3 app.py > output.log 2>&1 &
-            EOF
+           # nohup python3 app.py > output.log 2>&1 &
+            #EOF
 
+user_data = <<-EOF
+  #!/bin/bash
+  yum update -y
+  yum install -y python3 git
+
+  pip3 install fastapi uvicorn
+
+  # Move to home directory
+  cd /home/ec2-user
+
+  # Clone your GitHub repo
+  git clone https://github.com/byui-devops/HashQueens.git
+  cd HashQueens/app
+
+  # Start FastAPI with Uvicorn on the correct interface/port
+  nohup uvicorn main:app --host 0.0.0.0 --port 8000 > output.log 2>&1 &
+EOF
 
 
 

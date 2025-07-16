@@ -158,27 +158,29 @@ resource "aws_instance" "app" {
             # Run the app (make sure the entry point matches your app file)
            # nohup python3 app.py > output.log 2>&1 &
             #EOF
-
 user_data = <<-EOF
   #!/bin/bash
   yum update -y
   yum install -y python3 python3-pip git
 
-  # Upgrade pip and install FastAPI and Uvicorn
-  pip3 install --upgrade pip
-  pip3 install fastapi uvicorn
-
   # Move to home directory
   cd /home/ec2-user
+
+  # Clean up any existing clone
+  rm -rf HashQueens
 
   # Clone your GitHub repo
   git clone https://github.com/byui-devops/HashQueens.git
   cd HashQueens/app
 
-  # Start FastAPI with Uvicorn on the correct interface/port
-  nohup uvicorn main:app --host 0.0.0.0 --port 8000 > output.log 2>&1 &
+  # Upgrade pip and install from requirements.txt
+  pip3 install --upgrade pip
+  pip3 install -r requirements.txt
 
+  # Start FastAPI with Uvicorn
+  nohup uvicorn main:app --host 0.0.0.0 --port 8000 > output.log 2>&1 &
 EOF
+
 
 
 

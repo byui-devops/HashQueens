@@ -1,1 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Task Tracker</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f0f0f0; }
+    input, button { margin: 5px; padding: 8px; }
+    ul { list-style: none; padding: 0; }
+    li { background: white; margin: 5px 0; padding: 10px; border-radius: 5px; }
+    .task { display: flex; justify-content: space-between; align-items: center; }
+  </style>
+</head>
+<body>
+  <h1>Task Tracker</h1>
+  <input type="text" id="title" placeholder="Title" />
+  <input type="text" id="desc" placeholder="Description" />
+  <button onclick="createTask()">Add Task</button>
+
+  <ul id="taskList"></ul>
+
+  <script>
+    const API = "http://<YOUR-ALB-DNS>:80/tasks"; // Replace <YOUR-ALB-DNS> with your ALB DNS
+
+    async function fetchTasks() {
+      const taskList = document.getElementById("taskList");
+      taskList.innerHTML = "";
+      const response = await fetch(API.replace("/tasks", "/"));
+      if (!response.ok) {
+        taskList.innerHTML = "<li>Backend not reachable.</li>";
+        return;
+      }
+
+      const res = await fetch(API.replace("/tasks", "/tasks/1")); // Try a sample ID
+      if (res.status === 404) {
+        // Fallback if no tasks exist
+        return;
+      }
+
+      for (let i = 1; i < 100; i++) {
+        const res = await fetch(`${API}/${i}`);
+        if (!res.ok) continue;
+        const task = await res.json();
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <div class="task">
+            <span><strong>${task.title}</strong>: ${task.description}</span>
+            <button onclick="deleteTask(${task.id})">Delete</button>
+          </div>
+        `;
+        taskList.appendChild(li);
+      }
+    }
+
+    async function createTask() {
+      const title = document.getElementById("title").value;
+      const desc = document.getElementById("desc").value;
+      await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description: desc }),
+      });
+      fetchTasks();
+    }
+
+    async function deleteTask(id) {
+      await fetch(`${API}/${id}`, { method: "DELETE" });
+      fetchTasks();
+    }
+
+    fetchTasks();
+  </script>
+</body>
+</html>
 
